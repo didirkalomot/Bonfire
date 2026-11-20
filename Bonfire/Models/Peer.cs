@@ -7,9 +7,26 @@ namespace Bonfire.Models;
 
 public class Peer
 {
-    public readonly record struct Wire(Bytes PublicKey, DateTime LastSeen);
+    public readonly record struct Wire(Bytes PublicKey, DateTime LastSeen)
+    {
+        public Wire(Data peer) : this(peer.PublicKey, peer.LastSeen) { }
+    }
 
-    public readonly record struct UI(Bytes PublicKey, string DisplayName, string StatusText);
+    public readonly record struct UI(Bytes PublicKey, string DisplayName, string StatusText)
+    {
+        public UI(Data peer) : this(
+            peer.PublicKey, 
+            AliasTable.GetPeerName(peer.PublicKey), 
+            UIFormatLastSeen(peer.LastSeen)) { }
+
+        private static string UIFormatLastSeen(DateTime lastSeen)
+        {
+            var age = DateTime.UtcNow - lastSeen;
+            if (age.TotalSeconds < 30) return "недавно";
+            if (age.TotalMinutes < 60) return $"{(int)age.TotalMinutes} мин назад";
+            return $"{(int)age.TotalHours} ч назад";
+        }
+    }
 
     public class Data
     {
@@ -20,15 +37,6 @@ public class Peer
         {
             PublicKey = publicKey;
             Hash = AnnouncePacket.Hash(publicKey);
-        }
-        public Wire ToWire() => new(PublicKey, LastSeen);
-        public UI ToUI() => new(PublicKey, AliasTable.GetPeerName(PublicKey), UIFormatLastSeen(LastSeen));
-        private static string UIFormatLastSeen(DateTime lastSeen)
-        {
-            var age = DateTime.UtcNow - lastSeen;
-            if (age.TotalSeconds < 30) return "недавно";
-            if (age.TotalMinutes < 60) return $"{(int)age.TotalMinutes} мин назад";
-            return $"{(int)age.TotalHours} ч назад";
         }
     }
 
